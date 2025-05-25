@@ -4,9 +4,38 @@
 # '.' : Goal
 # '$' : Box
 # '*' : Box on Goal
-# '@' : Player
+# 'P' : Player
 # '+' : Player on Goal
 from sokobanClass import SokobanState
+
+def eval_function_sokoban(state, data):
+    distance = 0
+    boxes = []
+    goals = []
+    for i in range(state.rows):
+        for j in range(state.cols):
+            if state.board[i][j] == '$':
+                boxes.append((i, j))
+            elif state.board[i][j] == '.':
+                goals.append((i, j))
+
+    for box in boxes:
+        results = []
+        for goal in goals:
+            box_goal_distance = abs(box[0] - goal[0]) + abs(box[1] - goal[1])
+            results += [box_goal_distance]
+
+        a = results[0]
+        idx = 0
+        for i in range(1, len(results)):
+            if results[i] < a:
+                a = results[i]
+                idx = i
+        distance += a
+        goals.remove(goals[idx]) #remove the one we used so it doesnt get caught up in the next
+
+    return distance
+
 
 board = [['##########'],
          ['# P      #'],

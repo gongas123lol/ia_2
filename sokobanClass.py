@@ -38,10 +38,10 @@ class SokobanState:
             return NotImplemented
         return self.player_pos == other.player_pos and self.board == other.board
 
-    def __hash__(self):
-        # Hashing for set/dict keys, convert board to a frozenset of tuples for immutability
-        board_tuple = tuple(tuple(row) for row in self.board)
-        return hash((self.player_pos, board_tuple))
+#    def __hash__(self):
+ #       # Hashing for set/dict keys, convert board to a frozenset of tuples for immutability
+  #      board_tuple = tuple(tuple(row) for row in self.board)
+   #     return hash((self.player_pos, board_tuple))
 
     def clone(self):
         return SokobanState([list(row) for row in self.board], self.player_pos)
