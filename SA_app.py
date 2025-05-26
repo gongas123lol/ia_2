@@ -69,26 +69,36 @@ def get_initial_sokoban_solution(data):
     """Return the initial Sokoban state"""
     return data  # data will be the initial game state
 
+def is_sokoban_solved(cost, data):
+    """Check if all boxes are on goals"""
+    return cost == 0
 
-def get_random_neighbor_sokoban(current_state, data):
-    """Generate a random neighbor state by making a valid move"""
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # right, left, down, up
-    new_state = current_state.clone()
-    
-    # Try all directions in random order
+
+def get_random_neighbor_sokoban(current_state, data, moves_list):
+    old_state = current_state.clone()
+    new_state = old_state.clone()
+
+    # Get possible directions
+    directions = [(0, 1, "RIGHT"), (0, -1, "LEFT"), (1, 0, "DOWN"), (-1, 0, "UP")]
+
+    # Try directions in random order
     random.shuffle(directions)
-    for dir in directions:
-        r, c = new_state.player_pos
-        new_r, new_c = r + dir[0], c + dir[1]
-        
+
+    player_r, player_c = new_state.player_pos
+
+    for dr, dc, direction in directions:
+        new_r, new_c = player_r + dr, player_c + dc
+
         # Check if move is valid
         if new_state.is_valid_pos(new_r, new_c):
             if new_state.board[new_r][new_c] in [' ', '.']:  # Empty space or goal
                 new_state.player_pos = (new_r, new_c)
+                moves_list.append(f"MOVE {direction}")
                 return new_state
+
             elif new_state.board[new_r][new_c] in ['$', '*']:  # Box
-                push_r, push_c = new_r + dir[0], new_c + dir[1]
-                if (new_state.is_valid_pos(push_r, push_c) and 
+                push_r, push_c = new_r + dr, new_c + dc
+                if (new_state.is_valid_pos(push_r, push_c) and
                         new_state.board[push_r][push_c] in [' ', '.']):
                     # Update box position
                     if new_state.board[new_r][new_c] == '$':
@@ -100,71 +110,36 @@ def get_random_neighbor_sokoban(current_state, data):
                         new_state.board[push_r][push_c] = '*'
                     else:
                         new_state.board[push_r][push_c] = '$'
-                    new_state.player_pos = (new_r, new_c)
-                    return new_state
-    
-    return current_state  # If no valid moves found, return unchanged state
 
-def is_sokoban_solved(cost, data):
-    """Check if all boxes are on goals"""
-    return cost == 0
+                    new_state.player_pos = (new_r, new_c)
+                    moves_list.append(f"PUSH {direction}")
+                    return new_state
+
+    return current_state
 
 
 def solve_sokoban_sa(initial_state):
-    # Create a list to store moves
-    move_history = []
-
-    def track_move(old_state, new_state):
-        if old_state.player_pos != new_state.player_pos:
-            # Determine direction of movement
-            dx = new_state.player_pos[1] - old_state.player_pos[1]
-            dy = new_state.player_pos[0] - old_state.player_pos[0]
-
-            if dx == 1:
-                direction = "RIGHT"
-            elif dx == -1:
-                direction = "LEFT"
-            elif dy == 1:
-                direction = "DOWN"
-            elif dy == -1:
-                direction = "UP"
-
-            # Check if it was a push move
-            if any(new_state.board[i][j] != old_state.board[i][j]
-                   for i in range(old_state.rows)
-                   for j in range(old_state.cols)):
-                move_type = f"PUSH {direction}"
-            else:
-                move_type = f"MOVE {direction}"
-
-            move_history.append(move_type)
-
-    def modified_neighbor(current_state, data):
-        old_state = current_state.clone()
-        new_state = get_random_neighbor_sokoban(current_state, data)
-        if old_state.player_pos != new_state.player_pos:  # If move actually happened
-            track_move(old_state, new_state)
-        return new_state
+    moves_list = []  # List to store moves
 
     results = simulated_annealing(
         Tmax=5,
-        Tmin=0.01,
-        R=0.01,
-        k=200,
+        Tmin=0.05,
+        R=0.001,
+        k=100,
         data=initial_state,
         get_initial_solution=get_initial_sokoban_solution,
-        get_random_neighbor=modified_neighbor,  # Use our modified neighbor function
+        get_random_neighbor=lambda state, data: get_random_neighbor_sokoban(state, data, moves_list),
         eval_func=eval_function_sokoban,
         is_optimum=is_sokoban_solved,
         sense='minimize'
     )
 
-    # Add move history to results
-    results['moves'] = move_history
+    # Add moves to results
+    results['moves'] = moves_list
     return results
 
 
-# Run the solver
+# Run the solver and display results
 game = SokobanState(initial_board_layout, player_start_pos)
 results = solve_sokoban_sa(game)
 
@@ -175,7 +150,4 @@ print(f"\nFinal cost: {results['Cost']}")
 print("\nMoves made:")
 for i, move in enumerate(results['moves'], 1):
     print(f"{i}. {move}")
-
-results['final_solution'].display()
 print(f"\nTotal moves: {len(results['moves'])}")
-print(f"Final cost: {results['Cost']}")
