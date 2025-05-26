@@ -1,15 +1,15 @@
-% Import the A* search algorithm
 :- ensure_loaded('astar.pl').
+:- dynamic visited/1.
+:- use_module(library(lists)).
+:- use_module(library(apply)).
+:- use_module(library(system)).
 
-% Simplified Sokoban Solver with A* Search
-% Type definitions
 type("wall").
 type("empty").
 type("box").
-type("x").     % target position for boxes
+type("x").
 type("player").
 
-% Map representation (simple example)
 square("wall", 0, 0).
 square("wall", 0, 1).
 square("wall", 0, 2).
@@ -18,15 +18,15 @@ square("wall", 0, 4).
 square("wall", 0, 5).
 square("wall", 0, 6).
 square("wall", 0, 7).
-
 square("wall", 1, 0).
+
 square("player", 1, 1).
-square("empty", 1, 2).
-square("box", 1, 3).
-square("empty", 1, 4).
-square("empty", 1, 5).
-square("x", 1, 6).
-square("wall", 1, 7).
+square("empty",  1, 2).
+square("box",    1, 3).
+square("empty",  1, 4).
+square("empty",  1, 5).
+square("x",      1, 6).
+square("wall",   1, 7).
 
 square("wall", 2, 0).
 square("wall", 2, 1).
@@ -34,167 +34,140 @@ square("wall", 2, 2).
 square("wall", 2, 3).
 square("wall", 2, 4).
 square("wall", 2, 5).
-square("wall", 0, 6).
-square("wall", 0, 7).
 
-% Basic helper predicates
-is_empty(X, Y) :- square("empty", X, Y).
-is_empty(X, Y) :- square("x", X, Y).
-is_wall(X, Y) :- square("wall", X, Y).
-is_box(X, Y) :- square("box", X, Y).
-is_target(X, Y) :- square("x", X, Y).
-is_player(X, Y) :- square("player", X, Y).
+out_of_bounds(X,Y) :- \+ square(_,X,Y).
 
-% Define directions
-direction(up, 0, -1).
-direction(down, 0, 1).
+is_wall(X,Y) :- square("wall",X,Y).
+is_wall(X,Y) :- out_of_bounds(X,Y).
+
+is_target(X,Y) :- square("x",X,Y).
+is_player(X,Y) :- square("player",X,Y).
+is_box(X,Y) :- square("box",X,Y).
+
+is_floor(X,Y) :- \+ is_wall(X,Y).
+
+direction(up,    0,-1).
+direction(down,  0, 1).
 direction(left, -1, 0).
 direction(right, 1, 0).
 
-% Check if all boxes are on targets (win condition)
-all_boxes_on_targets :-
-    findall((X, Y), is_box(X, Y), Boxes),
-    findall((X, Y), is_target(X, Y), Targets),
-    subset_check(Boxes, Targets).
+canonical(state(PX,PY,B0), state(PX,PY,B)) :- sort(B0,B).
 
-subset_check([], _).
-subset_check([(X, Y)|Rest], Targets) :-
-    member((X, Y), Targets),
-    subset_check(Rest, Targets).
+wall_or_frame(X,Y) :- is_wall(X,Y).
 
-% State representation: state(PlayerX, PlayerY, BoxPositions)
-initial_state(State) :-
-    findall((X, Y), is_player(X, Y), [(PX, PY)]),
-    findall((X, Y), is_box(X, Y), Boxes),
-    State = state(PX, PY, Boxes).
-
-% Define valid moves for the player
-valid_move(state(PX, PY, Boxes), Direction, NewState) :-
-    direction(Direction, DX, DY),
-    NX is PX + DX,
-    NY is PY + DY,
-
-    % Case 1: Moving to an empty space
-    (   \+ member((NX, NY), Boxes),
-        \+ is_wall(NX, NY),
-        NewState = state(NX, NY, Boxes)
-    ;
-        % Case 2: Pushing a box
-        member((NX, NY), Boxes),
-        BX is NX + DX,
-        BY is NY + DY,
-        \+ member((BX, BY), Boxes),
-        \+ is_wall(BX, BY),
-        delete(Boxes, (NX, NY), TempBoxes),
-        append(TempBoxes, [(BX, BY)], NewBoxes),
-        NewState = state(NX, NY, NewBoxes)
+dead_corner(X,Y) :-
+    \+ is_target(X,Y),
+    (
+      (X1 is X-1, wall_or_frame(X1,Y), Y1 is Y-1, wall_or_frame(X, Y1));
+      (X1 is X-1, wall_or_frame(X1,Y), Y1 is Y+1, wall_or_frame(X, Y1));
+      (X1 is X+1, wall_or_frame(X1,Y), Y1 is Y-1, wall_or_frame(X, Y1));
+      (X1 is X+1, wall_or_frame(X1,Y), Y1 is Y+1, wall_or_frame(X, Y1))
     ).
 
-% Manhattan distance for a single box to its nearest target
-box_distance((BX, BY), Targets, Distance) :-
-    findall(Dist, (member((TX, TY), Targets), Dist is abs(BX - TX) + abs(BY - TY)), Distances),
-    min_list(Distances, Distance).
+deadlock(Boxes) :- member((X,Y),Boxes), dead_corner(X,Y), !.
 
-% Sum of Manhattan distances from all boxes to their nearest targets
-% This is our admissible heuristic function
-h(state(_, _, Boxes), H) :-
-    findall((X, Y), is_target(X, Y), Targets),
-    findall(Dist, (member(Box, Boxes), box_distance(Box, Targets, Dist)), Distances),
-    sum_list(Distances, H).
+initial_state(State) :-
+    is_player(PX,PY),
+    findall((BX,BY), is_box(BX,BY), Boxes0),
+    canonical(state(PX,PY,Boxes0), State).
 
-% Define goal state - all boxes on targets
-goal(State) :-
-    State = state(_, _, Boxes),
-    findall((X, Y), is_target(X, Y), Targets),
-    subset_check(Boxes, Targets),
-    length(Boxes, BoxCount),
-    length(Targets, TargetCount),
-    BoxCount =< TargetCount.
+valid_move(state(PX,PY,Boxes0), Dir, state(NPX,NPY,BoxesC)) :-
+    direction(Dir,DX,DY),
+    NX is PX+DX,  NY is PY+DY,
+    is_floor(NX,NY),
+    (
+      \+ member((NX,NY),Boxes0)
+    -> canonical(state(NX,NY,Boxes0), state(NPX,NPY,BoxesC))
+    ; member((NX,NY),Boxes0),
+      BX is NX+DX, BY is NY+DY,
+      is_floor(BX,BY),
+      \+ member((BX,BY),Boxes0),
+      delete(Boxes0,(NX,NY),Tmp),
+      append(Tmp,[(BX,BY)],Boxes1),
+      canonical(state(NX,NY,Boxes1), state(NPX,NPY,BoxesC)),
+      \+ deadlock(BoxesC)
+    ).
 
-% Define successor states
-s(State, NextState, Cost) :-
-    direction(Dir, _, _),
-    valid_move(State, Dir, NextState),
-    Cost = 1.  % In Sokoban, each move costs 1
+s(State,Next,1) :-
+    valid_move(State,_,Next),
+    ( visited(Next) -> fail ; assertz(visited(Next)) ).
 
-% Entry point for A* search
-solve_sokoban(Solution) :-
-    initial_state(InitialState),
-    bestfirst(InitialState, RevSolution),
-    reverse(RevSolution, Solution).
+box_distance((BX,BY),D) :-
+    findall(D0,(is_target(TX,TY), D0 is abs(BX-TX)+abs(BY-TY)), Ds),
+    min_list(Ds,D).
 
-% A* search implementation
-bestfirst(Start, Solution) :-
-	expand([], l(Start, 0/0), 9999, _, yes, Solution).
+h(state(_,_,Boxes),H) :-
+    findall(D,(member(B,Boxes), box_distance(B,D)), Ds),
+    sum_list(Ds,H).
 
-% Case 1: goal leaf-node, construct a solution path
-expand(P, l(N, _), _, _, yes, [N | P]) :-
-	goal(N).
+goal(state(_,_,Boxes)) :-
+    findall((TX,TY), is_target(TX,TY), Targets),
+    subset(Boxes,Targets).
 
-% Case 2: leaf-node, f-value less than Bound
-expand(P, l(N, F/G), Bound, Tree1, Solved, Sol) :-
-	F =< Bound,
-	( bagof(M/C, (s(N, M, C), \+ member(M, P)), Succ),
-	  !,
-	  succlist(G, Succ, Ts),
-	  bestf(Ts, F1),
-	  expand(P, t(N, F1/G, Ts), Bound, Tree1, Solved, Sol)
-	;
-	  Solved = never
-	).
+subset([], _).
+subset([E|Es],Set) :- member(E,Set), subset(Es,Set).
 
-% Case 3: non-leaf, f-value less than Bound
-expand(P, t(N, F/G, [T | Ts]), Bound, Tree1, Solved, Sol) :-
-	F =< Bound,
-	bestf(Ts, BF),
-	Bound1 is min(Bound, BF),
-	expand([N | P], T, Bound1, T1, Solved1, Sol),
-	continue(P, t(N, F/G, [T1 | Ts]), Bound, Tree1, Solved1, Solved, Sol).
+solve_sokoban(States,Moves) :-
+    retractall(visited(_)),
+    initial_state(Start),
+    assertz(visited(Start)),
+    bestfirst(Start,Rev),
+    reverse(Rev,States),
+    states_to_moves(States,Moves).
 
-% Case 4: non-leaf with empty subtrees
-expand(_, t(_, _, []), _, _, never, _) :- !.
+states_to_moves([_],[]) :- !.
+states_to_moves([state(X1,Y1,_),state(X2,Y2,_)|R],[Dir|Dirs]) :-
+    DX is X2-X1, DY is Y2-Y1,
+    direction(Dir,DX,DY),
+    states_to_moves([state(X2,Y2,_)|R],Dirs).
 
-% Case 5: value greater than Bound
-expand(_, Tree, Bound, Tree, no, _) :-
-	f(Tree, F), F > Bound.
+board_size(MaxX,MaxY) :-
+    findall(X, square(_,X,_), Xs),
+    findall(Y, square(_,_,Y), Ys),
+    max_list(Xs,MaxX),
+    max_list(Ys,MaxY).
 
-% Continue helper function
-continue(_, _, _, _, yes, yes, Sol) :- !.
+cell_symbol(state(PX,PY,Boxes),X,Y,Char) :-
+    ( is_wall(X,Y)                 -> Char = '#'
+    ; member((X,Y),Boxes), is_target(X,Y) -> Char = '*'
+    ; member((X,Y),Boxes)          -> Char = '$'
+    ; PX =:= X, PY =:= Y,
+      is_target(X,Y)               -> Char = '+'
+    ; PX =:= X, PY =:= Y           -> Char = '@'
+    ; is_target(X,Y)               -> Char = '.'
+    ;                               Char = ' '
+    ).
 
-continue(P, t(N, F/G, [T1 | Ts]), Bound, Tree1, no, Solved, Sol) :-
-	insert(T1, Ts, NTs),
-	bestf(NTs, F1),
-	expand(P, t(N, F1/G, NTs), Bound, Tree1, Solved, Sol).
+print_board(State) :-
+    board_size(MaxX,MaxY),
+    forall(between(0,MaxY,Y),
+           ( forall(between(0,MaxX,X),
+                    ( cell_symbol(State,X,Y,Ch),
+                      write(Ch)
+                    )),
+             nl
+           )),
+    nl.
 
-continue(P, t(N, F/G, [_ | Ts]), Bound, Tree1, never, Solved, Sol) :-
-	bestf(Ts, F1),
-	expand(P, t(N, F1/G, Ts), Bound, Tree1, Solved, Sol).
+show_states([]).
+show_states([S|Ss]) :-
+    print_board(S),
+    show_states(Ss).
 
-% Make list of search leaves ordered by their f-values
-succlist(_, [], []).
+solve :-
+    retractall(visited(_)),
+    solve_sokoban(States,Moves),
+    length(Moves,N),
+    format('Solved in ~d moves: ~w~n~n',[N,Moves]),
+    show_states(States).
 
-succlist(GO, [N/C | NCs], Ts) :-
-	G is GO + C,
-	h(N, H),
-	F is G + H,
-	succlist(GO, NCs, Ts1),
-	insert(l(N, F/G), Ts1, Ts).
+animate(Delay) :-
+    retractall(visited(_)),
+    solve_sokoban(States,Moves),
+    length(Moves,N),
+    format('Solved in ~d moves.~n~n',[N]),
+    maplist(show_with_delay(Delay),States).
 
-% Insert T into list of trees Ts preserving order with respect to f-values
-insert(T, Ts, [T | Ts]) :-
-	f(T, F), bestf(Ts, F1),
-	F =< F1, !.
-
-insert(T, [T1 | Ts], [T1 | Ts1]) :-
-	insert(T, Ts, Ts1).
-
-% Extract f-value
-f(l(_, F/_), F).        % f-value of a leaf
-f(t(_, F/_, _), F).     % f-value of a tree
-
-bestf([T | _], F) :-    % Best f-value of a list of trees
-	f(T, F).
-bestf([], 9999).        % No trees: bad f-value
-
-% Example usage
-% ?- solve_sokoban(Solution), writeln(Solution).
+show_with_delay(Delay,State) :-
+    print_board(State),
+    sleep(Delay).
