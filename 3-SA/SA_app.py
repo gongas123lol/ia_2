@@ -23,20 +23,19 @@ def eval_function_sokoban(state, data):
     # Find boxes and goals
     for i in range(state.rows):
         for j in range(state.cols):
-            if state.board[i][j] == '$':
+            cell = state.board[i][j]
+            if cell == '$':
                 boxes.append((i, j))
-            elif state.board[i][j] == '*':  # Box on goal
-                return 0  # If any box is on goal, we're making progress
-            elif state.board[i][j] == '.':
+            elif cell == '.':
                 goals.append((i, j))
     
     # Calculate box-to-goal distances
     for box in boxes:
-        min_distance = float('inf')
+        min_distance = float(0)
         for goal in goals:
             distance = abs(box[0] - goal[0]) + abs(box[1] - goal[1])
             min_distance = min(min_distance, distance)
-        total_cost += min_distance * 2  # Weight box-goal distance more heavily
+        total_cost += min_distance * 2
         
         # Add player-to-box distance
         player_box_dist = abs(state.player_pos[0] - box[0]) + abs(state.player_pos[1] - box[1])
@@ -47,8 +46,11 @@ def eval_function_sokoban(state, data):
 board = [
     '##########',
     '# P #    #',
-    '#      # #',
+    '#        #',
+    '#     .  #',
+    '#        #',
     '#   $ .  #',
+    '#        #',
     '##########'
 ]
 
@@ -98,7 +100,7 @@ def get_random_neighbor_sokoban(current_state, data, moves_list):
         if new_state.is_valid_pos(new_r, new_c):
             if new_state.board[new_r][new_c] in [' ', '.']:  # Empty space or goal
                 new_state.player_pos = (new_r, new_c)
-                moves_list.append(f"MOVE {direction}")
+                moves_list.append(f"{direction}")
                 return new_state
 
             elif new_state.board[new_r][new_c] in ['$', '*']:  # Box
