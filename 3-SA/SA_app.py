@@ -12,6 +12,10 @@ from SA import simulated_annealing
 from sokobanClass import SokobanState
 
 def eval_function_sokoban(state, data):
+    # 1) penaliza imediatamente estados em dead-lock
+    if state.deadlock():
+        return 100000000000000000000    # goofy ahh custo
+
     total_cost = 0
     boxes = []
     goals = []
@@ -42,7 +46,8 @@ def eval_function_sokoban(state, data):
 
 board = [
     '##########',
-    '# P      #',
+    '# P #    #',
+    '#      # #',
     '#   $ .  #',
     '##########'
 ]
@@ -148,6 +153,6 @@ print("\nFinal state:")
 results['final_solution'].display()
 print(f"\nFinal cost: {results['Cost']}")
 print("\nMoves made:")
-for i, move in enumerate(results['moves'], 1):
-    print(f"{i}. {move}")
+#for i, move in enumerate(results['moves'], 1):
+ #   print(f"{i}. {move}")
 print(f"\nTotal moves: {len(results['moves'])}")

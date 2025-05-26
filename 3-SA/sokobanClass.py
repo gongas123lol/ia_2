@@ -32,17 +32,43 @@ class SokobanState:
 
     def is_valid_pos(self, r, c):
         return 0 <= r < self.rows and 0 <= c < self.cols
-
+    
     def __eq__(self, other):
         if not isinstance(other, SokobanState):
             return NotImplemented
         return self.player_pos == other.player_pos and self.board == other.board
 
-#    def __hash__(self):
- #       # Hashing for set/dict keys, convert board to a frozenset of tuples for immutability
-  #      board_tuple = tuple(tuple(row) for row in self.board)
-   #     return hash((self.player_pos, board_tuple))
 
+    def _is_wall(self, r: int, c: int):
+        """Retorna True se (r,c) for parede ou estiver fora do tabuleiro."""
+        if not self.is_valid_pos(r, c):
+            return True
+        return self.board[r][c] == '#'
+
+    def deadlock(self):
+        """
+        Detecta dead-lock de canto: caixa fora de meta encostada em duas paredes
+        ortogonais. Retorna True se existir pelo menos uma caixa irrecuperável.
+        """
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.board[r][c] != '$':          # ajuste ao seu símbolo de caixa
+                    continue
+                if (r, c) in self.goals:             # caixa já posicionada em meta
+                    continue
+
+                parede_cima   = self._is_wall(r - 1, c)
+                parede_baixo  = self._is_wall(r + 1, c)
+                parede_esq    = self._is_wall(r, c - 1)
+                parede_dir    = self._is_wall(r, c + 1)
+
+                # quatro combinações de canto
+                if (parede_cima and parede_esq) \
+                   or (parede_cima and parede_dir) \
+                   or (parede_baixo and parede_esq) \
+                   or (parede_baixo and parede_dir):
+                    return True
+        return False
+    
     def clone(self):
         return SokobanState([list(row) for row in self.board], self.player_pos)
-
