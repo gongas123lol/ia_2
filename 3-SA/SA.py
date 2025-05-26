@@ -71,19 +71,19 @@ def simulated_annealing(Tmax, Tmin, R, k,
             else:
                 raise ValueError("Sense must be 'minimize' or 'maximize'")
 
-            print(f'fu (sol) = {fu}, fv (new neighbor) = {fv}')
+            #print(f'fu (sol) = {fu}, fv (new neighbor) = {fv}')
 
             if dif < 0:  # This means fv is "better" (lower for minimize, higher for maximize)
-                print('Neighbor accepted (better)')
+                #print('Neighbor accepted (better)')
                 u = v
                 fu = fv
             else:
                 prob = calculate_probability(fu, fv, T, sense)
                 x = random.random()  # Generate a random number between 0 and 1
-                print(f'Probability: {prob:.4f}, Random: {x:.4f}')
+                #print(f'Probability: {prob:.4f}, Random: {x:.4f}')
                 if x <= prob:
                     # Accept this solution even if it's worse
-                    print('Neighbor accepted (worse, by probability)')
+                    #print('Neighbor accepted (worse, by probability)')
                     u = v
                     fu = fv
                 else:
