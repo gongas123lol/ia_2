@@ -12,9 +12,9 @@ from SA import simulated_annealing
 from sokobanClass import SokobanState
 
 def eval_function_sokoban(state, data):
-    # 1) penaliza imediatamente estados em dead-lock
+
     if state.deadlock():
-        return 100000000000000000000    # goofy ahh custo
+        return 100000000000000000000    # no deadlocks alowed
 
     total_cost = 0
     boxes = []
@@ -29,7 +29,7 @@ def eval_function_sokoban(state, data):
             elif cell == '.':
                 goals.append((i, j))
     
-    # Calculate box-to-goal distances
+    # Calculate box to goal distances
     for box in boxes:
         min_distance = float(0)
         for goal in goals:
@@ -37,7 +37,7 @@ def eval_function_sokoban(state, data):
             min_distance = min(min_distance, distance)
         total_cost += min_distance * 2
         
-        # Add player-to-box distance
+        # Add player to box distance
         player_box_dist = abs(state.player_pos[0] - box[0]) + abs(state.player_pos[1] - box[1])
         total_cost += player_box_dist
     
@@ -45,9 +45,9 @@ def eval_function_sokoban(state, data):
 
 board = [
     '##########',
-    '# P #    #',
+    '# P      #',
     '#        #',
-    '#     .  #',
+    '#        #',
     '#        #',
     '#   $ .  #',
     '#        #',
@@ -129,10 +129,10 @@ def solve_sokoban_sa(initial_state):
     moves_list = []  # List to store moves
 
     results = simulated_annealing(
-        Tmax=5,
-        Tmin=0.05,
+        Tmax=100,
+        Tmin=0.01,
         R=0.001,
-        k=100,
+        k=200,
         data=initial_state,
         get_initial_solution=get_initial_sokoban_solution,
         get_random_neighbor=lambda state, data: get_random_neighbor_sokoban(state, data, moves_list),

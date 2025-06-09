@@ -86,8 +86,8 @@ def simulated_annealing(Tmax, Tmin, R, k,
                     #print('Neighbor accepted (worse, by probability)')
                     u = v
                     fu = fv
-                else:
-                    print('Neighbor rejected')
+                #else:
+                 #   print('Neighbor rejected')
 
             # Make i = i+1.
             i += 1
