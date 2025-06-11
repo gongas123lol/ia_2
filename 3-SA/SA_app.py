@@ -9,7 +9,7 @@
 import random
 
 from SA import simulated_annealing
-from sokobanClass import SokobanState
+from SokobanClass.sokobanClass import SokobanState
 
 def eval_function_sokoban(state, data):
 
@@ -46,7 +46,7 @@ def eval_function_sokoban(state, data):
 board = [
     '##########',
     '# P      #',
-    '#        #',
+    '#   $ .  #',
     '#        #',
     '#        #',
     '#   $ .  #',
@@ -80,48 +80,49 @@ def is_sokoban_solved(cost, data):
     """Check if all boxes are on goals"""
     return cost == 0
 
+def get_random_neighbor_sokoban(current_state, data, moves_list=None):
+    # It's better to pass moves_list explicitly if it needs to be modified.
+    # For this example, we'll assume it's handled outside or not needed per call.
+    new_state = current_state.clone()
 
-def get_random_neighbor_sokoban(current_state, data, moves_list):
-    old_state = current_state.clone()
-    new_state = old_state.clone()
-
-    # Get possible directions
     directions = [(0, 1, "RIGHT"), (0, -1, "LEFT"), (1, 0, "DOWN"), (-1, 0, "UP")]
-
-    # Try directions in random order
     random.shuffle(directions)
 
     player_r, player_c = new_state.player_pos
 
-    for dr, dc, direction in directions:
+    for dr, dc, direction_name in directions:
         new_r, new_c = player_r + dr, player_c + dc
 
-        # Check if move is valid
-        if new_state.is_valid_pos(new_r, new_c):
-            if new_state.board[new_r][new_c] in [' ', '.']:  # Empty space or goal
+        # Check if the player's new position is valid and not a wall
+        if new_state.is_valid_pos(new_r, new_c) and new_state.board[new_r][new_c] != '#':
+            # Case 1: Moving to an empty space or a goal
+            if new_state.board[new_r][new_c] in [' ', '.']:
                 new_state.player_pos = (new_r, new_c)
-                moves_list.append(f"{direction}")
+                # moves_list.append(f"MOVE {direction_name}") # Optional: more descriptive moves
                 return new_state
 
-            elif new_state.board[new_r][new_c] in ['$', '*']:  # Box
+            # Case 2: Pushing an UNSORTED box ('$')
+            # ★★★ THIS IS THE KEY CHANGE ★★★
+            # We only allow pushing a '$', not a '*' (box on goal).
+            elif new_state.board[new_r][new_c] == '$':
                 push_r, push_c = new_r + dr, new_c + dc
-                if (new_state.is_valid_pos(push_r, push_c) and
-                        new_state.board[push_r][push_c] in [' ', '.']):
-                    # Update box position
-                    if new_state.board[new_r][new_c] == '$':
-                        new_state.board[new_r][new_c] = ' '
-                    else:  # '*'
-                        new_state.board[new_r][new_c] = '.'
+                # Check if the space behind the box is free
+                if new_state.is_valid_pos(push_r, push_c) and new_state.board[push_r][push_c] in [' ', '.']:
+                    # The spot the box was on becomes empty
+                    new_state.board[new_r][new_c] = ' '
 
+                    # The spot the box is pushed to becomes a box or box-on-goal
                     if (push_r, push_c) in new_state.goals:
-                        new_state.board[push_r][push_c] = '*'
+                        new_state.board[push_r][push_c] = '*' # Box on a goal
                     else:
-                        new_state.board[push_r][push_c] = '$'
+                        new_state.board[push_r][push_c] = '$' # Box on the floor
 
+                    # Update player position
                     new_state.player_pos = (new_r, new_c)
-                    moves_list.append(f"PUSH {direction}")
+                    # moves_list.append(f"PUSH {direction_name}")
                     return new_state
 
+    # If no valid move was found after trying all directions, return the original state
     return current_state
 
 
@@ -130,9 +131,9 @@ def solve_sokoban_sa(initial_state):
 
     results = simulated_annealing(
         Tmax=100,
-        Tmin=0.01,
+        Tmin=0.0001,
         R=0.001,
-        k=200,
+        k=5,
         data=initial_state,
         get_initial_solution=get_initial_sokoban_solution,
         get_random_neighbor=lambda state, data: get_random_neighbor_sokoban(state, data, moves_list),
