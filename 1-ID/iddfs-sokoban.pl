@@ -1,4 +1,4 @@
-:- ensure_loaded('astar.pl').
+:- ensure_loaded('depth_first_iterative_deepening.pl').
 :- use_module(library(lists)).
 :- use_module(library(apply)).
 :- use_module(library(system)).
@@ -64,16 +64,8 @@ valid_move(state(PX,PY,Boxes0), Dir, state(NPX,NPY,BoxesC)) :-
       \+ deadlock(BoxesC)
     ).
 
-s(State, Next, 1) :-
+s(State, Next, _) :-
     valid_move(State, _Dir, Next).
-
-box_distance((BX,BY),D) :-
-    findall(D0,(is_target(TX,TY), D0 is abs(BX-TX)+abs(BY-TY)), Ds),
-    min_list(Ds,D).
-
-h(state(_,_,Boxes),H) :-
-    findall(D,(member(B,Boxes), box_distance(B,D)), Ds),
-    sum_list(Ds,H).
 
 goal(state(_,_,Boxes)) :-
     findall((TX,TY), is_target(TX,TY), Targets),
@@ -82,22 +74,33 @@ goal(state(_,_,Boxes)) :-
 subset([], _).
 subset([E|Es],Set) :- member(E,Set), subset(Es,Set).
 
-solve(Level, States, Moves) :-
-    load_level(Level),
+path_dfs(Node, Node, [Node], _Visited, _Limit) :-
+    goal(Node).
+
+path_dfs(Current, GoalFound, [Current|RestPath], Visited, Limit) :-
+    Limit > 0,
+    s(Current, Next, _),
+    \+ member(Next, Visited),
+    NewLimit is Limit - 1,
+    path_dfs(Next, GoalFound, RestPath, [Next|Visited], NewLimit).
+
+iterative_deepening(Depth, Path, Moves) :-
     initial_state(Start),
-    bestfirst(Start, RevPath),
-    reverse(RevPath, States),
-    states_to_moves(States, Moves).
+    path_dfs(Start, _Goal, Path, [Start], Depth),
+    states_to_moves(Path, Moves).
 
 solve(Level) :-
-    statistics(runtime, [T0|_]),
     atom_concat('../levels_prolog/', Level, LevelPath),
-    solve(LevelPath, States, Moves),
-    statistics(runtime, [T1|_]),
+    load_level(LevelPath),
+    between(1, inf, D),
+    iterative_deepening(D, Path, Moves), % Changed States to Path
+    !,
     length(Moves, N),
-    format('A* solved  ~w  in ~d moves (~d ms)~nPath: ~w~n~n',
-           [Level, N, T1-T0, Moves]),
-    show_states(States).
+    format('ID-DFS solved  ~w  in ~d moves (depth = ~d)~nPath: ~w~n~n',
+           [Level, N, D, Moves]),
+    show_states(Path). % Changed States to Path
+
+solve :- solve(level1).
 
 states_to_moves([_],[]) :- !.
 states_to_moves([state(X1,Y1,_),state(X2,Y2,_)|R],[Dir|Dirs]) :-
@@ -137,17 +140,3 @@ show_states([]).
 show_states([S|Ss]) :-
     print_board(S),
     show_states(Ss).
-
-solve :-
-    solve(level1).
-
-animate(Delay) :-
-    atom_concat('../levels/', level1, LevelPath),
-    solve(LevelPath, States, Moves),
-    length(Moves, N),
-    format('Solved in ~d moves.~n~n',[N]),
-    maplist(show_with_delay(Delay),States).
-
-show_with_delay(Delay,State) :-
-    print_board(State),
-    sleep(Delay).
