@@ -52,21 +52,21 @@ class SokobanState:
         """
         for r in range(self.rows):
             for c in range(self.cols):
-                if self.board[r][c] != '$':          # ajuste ao seu símbolo de caixa
+                if self.board[r][c] != '$':  # ajuste ao seu símbolo de caixa
                     continue
-                if (r, c) in self.goals:             # caixa já posicionada em meta
+                if (r, c) in self.goals:  # caixa já posicionada em meta
                     continue
 
-                parede_cima   = self._is_wall(r - 1, c)
-                parede_baixo  = self._is_wall(r + 1, c)
-                parede_esq    = self._is_wall(r, c - 1)
-                parede_dir    = self._is_wall(r, c + 1)
+                parede_cima = self._is_wall(r - 1, c)
+                parede_baixo = self._is_wall(r + 1, c)
+                parede_esq = self._is_wall(r, c - 1)
+                parede_dir = self._is_wall(r, c + 1)
 
                 # quatro combinações de canto
-                if (parede_cima and parede_esq) \
-                   or (parede_cima and parede_dir) \
-                   or (parede_baixo and parede_esq) \
-                   or (parede_baixo and parede_dir):
+                if (parede_cima) \
+                        or (parede_cima) \
+                        or (parede_baixo) \
+                        or (parede_baixo):
                     return True
         return False
     

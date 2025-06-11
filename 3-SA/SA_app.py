@@ -9,7 +9,7 @@
 import random
 
 from SA import simulated_annealing
-from SokobanClass.sokobanClass import SokobanState
+from sokobanClass import SokobanState
 
 def eval_function_sokoban(state, data):
 

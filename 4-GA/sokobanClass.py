@@ -63,10 +63,10 @@ class SokobanState:
                 parede_dir    = self._is_wall(r, c + 1)
 
                 # quatro combinações de canto
-                if (parede_cima and parede_esq) \
-                   or (parede_cima and parede_dir) \
-                   or (parede_baixo and parede_esq) \
-                   or (parede_baixo and parede_dir):
+                if (parede_cima) \
+                   or (parede_cima) \
+                   or (parede_baixo) \
+                   or (parede_baixo):
                     return True
         return False
     
