@@ -1,8 +1,5 @@
 import random
 import numpy as np
-import matplotlib.pyplot as plt
-
-# Import your actual GA framework and the Sokoban class
 from GA import GA
 from sokobanClass import SokobanState
 
@@ -11,7 +8,7 @@ from sokobanClass import SokobanState
 # --- Constants ---
 # Use numbers for moves as they are easier to work with in lists
 POSSIBLE_MOVES = [1, 2, 3, 4]  # 1:UP, 2:DOWN, 3:LEFT, 4:RIGHT
-CHROMOSOME_LENGTH = 120  # A key hyperparameter: max length of a solution plan.
+CHROMOSOME_LENGTH = 120
 
 
 # --- Chromosome & Fitness ---
@@ -21,23 +18,36 @@ def get_initial_sokoban_chromosome(data):
     return [random.choice(POSSIBLE_MOVES) for _ in range(CHROMOSOME_LENGTH)]
 
 
+# applies a move to a certain game, 1,2,3,4 beeing possible moves
 def move(state, move_id):
-    """
-    Applies a single move to a state object. Modifies the state in place.
-    Returns True if the move was valid, False otherwise.
-    """
-    player_r, player_c = state.player_pos
-    dr, dc = {1: (-1, 0), 2: (1, 0), 3: (0, -1), 4: (0, 1)}[move_id]
 
-    new_r, new_c = player_r + dr, player_c + dc
+    player_r, player_c = state.player_pos
+
+    dr = 0
+    dc = 0
+    match move_id:
+        case 1:
+            dr = -1
+        case 2:
+            dr = 1
+        case 3:
+            dc = -1
+        case 4:
+            dc = 1
+
+    # new position after moving
+    new_r = player_r + dr
+    new_c = player_c + dc
 
     if not state.is_valid_pos(new_r, new_c) or state.board[new_r][new_c] == '#':
         return False
 
+    # check if its empty or target meaning it can move
     if state.board[new_r][new_c] in [' ', '.']:
         state.player_pos = (new_r, new_c)
         return True
 
+    # if box or box on target, it pushes
     elif state.board[new_r][new_c] in ['$', '*']:
         push_r, push_c = new_r + dr, new_c + dc
         if state.is_valid_pos(push_r, push_c) and state.board[push_r][push_c] in [' ', '.']:
@@ -49,7 +59,7 @@ def move(state, move_id):
 
 
 def eval_cost_function(state, data):
-    """Calculates the COST of a given state. Lower is better."""
+    # huge cost if is deadlock, we DONT want deadlocks
     if state.deadlock():
         return float('inf')
 
