@@ -3,22 +3,18 @@ import numpy as np
 from GA import GA
 from sokobanClass import SokobanState
 
-# --- GA OPERATORS & SOKOBAN-SPECIFIC FUNCTIONS ---
-
-# --- Constants ---
-# Use numbers for moves as they are easier to work with in lists
 POSSIBLE_MOVES = [1, 2, 3, 4]  # 1:UP, 2:DOWN, 3:LEFT, 4:RIGHT
 CHROMOSOME_LENGTH = 120
 
 
 # --- Chromosome & Fitness ---
 
+# genereate a random chromosome
 def get_initial_sokoban_chromosome(data):
-    """Creates a single random chromosome (a sequence of moves)."""
     return [random.choice(POSSIBLE_MOVES) for _ in range(CHROMOSOME_LENGTH)]
 
 
-# applies a move to a certain game, 1,2,3,4 beeing possible moves
+# applies a move to a certain game, 1,2,3,4 being possible moves
 def move(state, move_id):
 
     player_r, player_c = state.player_pos
@@ -90,10 +86,9 @@ def eval_cost_function(state, data):
     return total_cost
 
 
+# simulates a move sequence and returns a fitness score (higher is better) (like 1/cost)
 def sokoban_fitness_function(chromosome, data):
-    """
-    Main fitness function. Simulates a move sequence and returns a FITNESS score (higher is better).
-    """
+
     initial_state = data['initial_state']
     sim_state = initial_state.clone()
 
@@ -157,9 +152,7 @@ def mutation_simple(data, population, mut_prob):
     return population
 
 
-# --- MAIN EXECUTION SCRIPT ---
-
-# 1. Setup Initial Board
+# Setup Initial Board
 board = [
     '#######',
     '# P   #',
@@ -179,14 +172,15 @@ for r_idx, row_str in enumerate(board):
         row_chars[c_idx] = ' '  # Player is on a floor tile
     initial_board_layout.append(row_chars)
 
-if player_start_pos is None: raise ValueError("Player 'P' not found in board.")
+if player_start_pos is None:
+    raise ValueError("Player 'P' not found in board.")
 
 initial_game_state = SokobanState(initial_board_layout, player_start_pos)
 
 print("Initial State:")
 initial_game_state.display()
 
-# 2. Define GA Parameters
+# Define GA Parameters
 POP_SIZE = 250
 CROSS_PROB = 0.85
 MUT_PROB = 0.02
