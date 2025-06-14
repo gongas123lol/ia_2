@@ -109,29 +109,42 @@ def get_random_neighbor_sokoban(current_state, moves_list):
                 moves_list.append(f"MOVE {direction_name}")
                 return new_state
 
-
             # check if its pushing a box
             # We only allow pushing a box, not a box on goal
             elif new_state.board[new_r][new_c] == '$':
-
                 push_r = new_r + dr
                 push_c = new_c + dc
-
-                # check if the space behind the box is free
+                # check if the space behind the box is free (ATTEMPT PUSH)
                 if new_state.is_valid_pos(push_r, push_c) and new_state.board[push_r][push_c] in [' ', '.']:
                     # the spot the box was on becomes empty
                     new_state.board[new_r][new_c] = ' '
-
                     # the spot the box is pushed to becomes a box or box on goal
                     if (push_r, push_c) in new_state.goals:
                         new_state.board[push_r][push_c] = '*' # Box on a goal
                     else:
                         new_state.board[push_r][push_c] = '$' # Box on the floor
-
                     # update player position
                     new_state.player_pos = (new_r, new_c)
                     moves_list.append(f"PUSH {direction_name}")
                     return new_state
+                # ELSE, if PUSH fails, ATTEMPT PULL
+                else:
+                    # Check if player's original spot is free for the box to be pulled into
+                    if new_state.board[player_r][player_c] in [' ', '.']:
+                        # The box's current spot becomes the new player position
+                        new_state.player_pos = (new_r, new_c)
+                        # The box's spot becomes empty (or a goal if it was on one)
+                        if (new_r, new_c) in new_state.goals:
+                            new_state.board[new_r][new_c] = '.'
+                        else:
+                            new_state.board[new_r][new_c] = ' '
+                        # The player's old spot is now occupied by the pulled box
+                        if (player_r, player_c) in new_state.goals:
+                            new_state.board[player_r][player_c] = '*'
+                        else:
+                            new_state.board[player_r][player_c] = '$'
+                        moves_list.append(f"PULL {direction_name}")
+                        return new_state
 
     # If no valid move was found after trying all directions, return the original state
     return current_state
@@ -143,8 +156,8 @@ def solve_sokoban_sa(initial_state):
     results = simulated_annealing(
         Tmax=100,
         Tmin=0.0001,
-        R=0.001,
-        k=10,
+        R=0.005,
+        k=75,
         data=initial_state,
         get_initial_solution=get_initial_sokoban_solution,
         get_random_neighbor=lambda state, data: get_random_neighbor_sokoban(state, moves_list),
