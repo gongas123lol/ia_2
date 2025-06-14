@@ -95,7 +95,10 @@ def get_best_fitness(fitness_list, sense):
 
 
 def get_initial_population(data, pop_size, get_initial_solution):
-    return [get_initial_solution(data) for _ in range(pop_size)]
+    population = []
+    for i in range(pop_size):
+        population.append(get_initial_solution())
+    return population
 
 
 def evaluate_population(data, population, eval_func):

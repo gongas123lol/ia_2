@@ -7,11 +7,15 @@ POSSIBLE_MOVES = [1, 2, 3, 4]  # 1:UP, 2:DOWN, 3:LEFT, 4:RIGHT
 CHROMOSOME_LENGTH = 120
 
 
-# --- Chromosome & Fitness ---
+# Chromosome & Fitness
 
-# genereate a random chromosome
-def get_initial_sokoban_chromosome(data):
-    return [random.choice(POSSIBLE_MOVES) for _ in range(CHROMOSOME_LENGTH)]
+# generate a random chromosome
+def get_initial_sokoban_chromosome():
+    lst = []
+    for i in range(CHROMOSOME_LENGTH):
+        lst.append(random.choice(POSSIBLE_MOVES))
+
+    return lst
 
 
 # applies a move to a certain game, 1,2,3,4 being possible moves
@@ -100,14 +104,14 @@ def sokoban_fitness_function(chromosome, data):
     fitness = 1.0 / (1.0 + cost)
     return fitness
 
-
+# checks if the best fitness score corresponds to a solved puzzle
 def is_sokoban_solved_ga(best_fitness, data):
-    """Checks if the best fitness score corresponds to a solved puzzle."""
     return abs(best_fitness - 1.0) < 1e-9
 
 
-# --- Genetic Operators (Selection, Crossover, Mutation) ---
+#Genetic Operators:
 
+# Tournament Selection: Selects parents for mating using tournament selection
 def selection_tournament(population, pop_fitness, k=3):
     """Selects parents using tournament selection."""
     new_population = []
@@ -122,8 +126,9 @@ def selection_tournament(population, pop_fitness, k=3):
     return new_population
 
 
+# Single-Point Crossover
 def crossover_single_point(data, population, cross_prob):
-    """Performs single-point crossover on pairs of parents."""
+
     new_population = []
     for i in range(0, len(population), 2):
         parent1 = population[i]
@@ -143,8 +148,8 @@ def crossover_single_point(data, population, cross_prob):
     return new_population
 
 
+# Simple Random Mutation
 def mutation_simple(data, population, mut_prob):
-    """Mutates individuals by changing a gene with a given probability."""
     for individual in population:
         for i in range(len(individual)):
             if random.random() < mut_prob:
@@ -208,21 +213,20 @@ results = GA(
     sense='maximize'
 )
 
-# 5. Display Results
-print("\n--- GA Run Complete ---")
+print("results:")
 if is_sokoban_solved_ga(results['Cost'], data):
-    print("SUCCESS: A solution was found!")
+    print("Found solution:")
     winning_moves = results['u']
-    print("Winning Move Sequence (first part):", winning_moves[:30])  # Print a snippet
+    print("Winning Move Sequence:", winning_moves)
 
-    # Simulate and display the winning sequence
+    # simulate and display the winning sequence
     final_sim_state = initial_game_state.clone()
     for move_action in winning_moves:
         if not move(final_sim_state, move_action):
             break
 
-    print("\nFinal board state after applying winning moves:")
+    print("board after applying winning moves:")
     final_sim_state.display()
 else:
     print("FAILURE: No solution found within the given generations.")
-    print(f"Best fitness achieved: {results['Cost']:.4f}")
+    print(f"Best fitness achieved: {results['Cost']}")
