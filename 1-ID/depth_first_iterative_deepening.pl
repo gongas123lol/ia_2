@@ -1,4 +1,3 @@
-
 :- consult('path.pl').
 
 depth_first_iterative_deepening( Node, Solution) :-

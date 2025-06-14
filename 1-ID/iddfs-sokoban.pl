@@ -69,7 +69,9 @@ s(State, Next, _) :-
 
 goal(state(_,_,Boxes)) :-
     findall((TX,TY), is_target(TX,TY), Targets),
-    subset(Boxes,Targets).
+    msort(Boxes, SortedBoxes),
+    msort(Targets, SortedTargets),
+    SortedBoxes == SortedTargets.
 
 subset([], _).
 subset([E|Es],Set) :- member(E,Set), subset(Es,Set).
@@ -77,30 +79,42 @@ subset([E|Es],Set) :- member(E,Set), subset(Es,Set).
 path_dfs(Node, Node, [Node], _Visited, _Limit) :-
     goal(Node).
 
-path_dfs(Current, GoalFound, [Current|RestPath], Visited, Limit) :-
-    Limit > 0,
-    s(Current, Next, _),
-    \+ member(Next, Visited),
-    NewLimit is Limit - 1,
-    path_dfs(Next, GoalFound, RestPath, [Next|Visited], NewLimit).
+% path_dfs/5: depth-limited DFS, now cuts on success
+ path_dfs(Current, GoalFound, [Current|RestPath], Visited, Limit) :-
+     Limit > 0,
+     s(Current, Next, _),
+     \+ member(Next, Visited),
+     NewLimit is Limit - 1,
+     path_dfs(Next, GoalFound, RestPath, [Next|Visited], NewLimit),
+     !.
 
 iterative_deepening(Depth, Path, Moves) :-
     initial_state(Start),
     path_dfs(Start, _Goal, Path, [Start], Depth),
     states_to_moves(Path, Moves).
 
+% start timing and invoke loop with T0
 solve(Level) :-
+    statistics(runtime, [T0|_]),
     atom_concat('../levels_prolog/', Level, LevelPath),
     load_level(LevelPath),
-    between(1, inf, D),
-    iterative_deepening(D, Path, Moves), % Changed States to Path
-    !,
-    length(Moves, N),
-    format('ID-DFS solved  ~w  in ~d moves (depth = ~d)~nPath: ~w~n~n',
-           [Level, N, D, Moves]),
-    show_states(Path). % Changed States to Path
+    solve_loop(Level, 1, T0).
 
-solve :- solve(level1).
+% depth‐limited loop carries T0 to compute elapsed time
+solve_loop(Level, D, T0) :-
+    format('Trying depth ~w (limit=~d)...~n', [Level, D]),
+    ( iterative_deepening(D, Path, Moves) ->
+        !,
+        length(Moves, N),
+        statistics(runtime, [T1|_]),
+        Time is T1 - T0,
+        format('ID-DFS solved ~w in ~d moves (depth = ~d, time = ~d ms)~nPath: ~w~n~n',
+               [Level, N, D, Time, Moves]),
+        show_states(Path)
+    ;
+        NextD is D + 1,
+        solve_loop(Level, NextD, T0)
+    ).
 
 states_to_moves([_],[]) :- !.
 states_to_moves([state(X1,Y1,_),state(X2,Y2,_)|R],[Dir|Dirs]) :-
