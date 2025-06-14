@@ -51,7 +51,6 @@ class SokobanState:
     #      $#
     #       #
     def deadlock(self):
-
         for r in range(self.rows):
             for c in range(self.cols):
                 if self.board[r][c] != '$':
@@ -64,8 +63,10 @@ class SokobanState:
                 parede_esq = self._is_wall(r, c - 1)
                 parede_dir = self._is_wall(r, c + 1)
 
-
-                if parede_cima or parede_esq  or parede_baixo or parede_dir:
+                if (parede_cima and parede_esq) or \
+                   (parede_cima and parede_dir) or \
+                   (parede_baixo and parede_esq) or \
+                   (parede_baixo and parede_dir):
                     return True
         return False
     

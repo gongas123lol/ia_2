@@ -154,11 +154,11 @@ def mutation_simple(data, population, mut_prob):
 
 # Setup Initial Board
 board = [
-    '#######',
-    '# P   #',
-    '#   $.#',
-    '#     #',
-    '#######'
+    '#########',
+    '# P     #',
+    '#   $  .#',
+    '#   $ . #',
+    '#########'
 ]
 
 initial_board_layout = []

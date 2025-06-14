@@ -77,10 +77,11 @@ h(state(_,_,Boxes),H) :-
 
 goal(state(_,_,Boxes)) :-
     findall((TX,TY), is_target(TX,TY), Targets),
-    subset(Boxes,Targets).
+    msort(Boxes, SortedBoxes),
+    msort(Targets, SortedTargets),
+    SortedBoxes == SortedTargets.
 
-subset([], _).
-subset([E|Es],Set) :- member(E,Set), subset(Es,Set).
+
 
 solve(Level, States, Moves) :-
     load_level(Level),

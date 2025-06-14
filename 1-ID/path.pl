@@ -27,4 +27,3 @@ path(FirstNode, LastNode, [LastNode | Path]) :-
 
 
 % ?- path(a, Last, Path).
-

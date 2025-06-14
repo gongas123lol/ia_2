@@ -13,7 +13,7 @@ from sokobanClass import SokobanState
 def eval_function_sokoban(state, data):
 
     if state.deadlock():
-        return 100000000000000000000    # no deadlocks alowed
+        return float('inf') # A deadlock state is infinitely bad
 
     total_cost = 0
     boxes = []
@@ -30,7 +30,7 @@ def eval_function_sokoban(state, data):
     
     # Calculate box to goal distances
     for box in boxes:
-        min_distance = float(0)
+        min_distance = float('inf')
         for goal in goals:
             distance = abs(box[0] - goal[0]) + abs(box[1] - goal[1])
             min_distance = min(min_distance, distance)
@@ -49,7 +49,7 @@ board = [
     '#        #',
     '#        #',
     '#   $ .  #',
-    '#        #',
+    '#   $   .#',
     '##########'
 ]
 
@@ -144,7 +144,7 @@ def solve_sokoban_sa(initial_state):
         Tmax=100,
         Tmin=0.0001,
         R=0.001,
-        k=5,
+        k=10,
         data=initial_state,
         get_initial_solution=get_initial_sokoban_solution,
         get_random_neighbor=lambda state, data: get_random_neighbor_sokoban(state, moves_list),
